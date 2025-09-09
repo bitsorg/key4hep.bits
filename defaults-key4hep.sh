@@ -8,11 +8,8 @@ env:
   ENABLE_VMC: 'ON'
   GEANT4_BUILD_MULTITHREADED: 'OFF'
   MACOSX_DEPLOYMENT_TARGET: '14.0'
-disable:
-
-overrides:
-  cgal:
-    version: 4.12.2
+  ENABLE_IPO: 'OFF'
+  
 ---
 # This file is included in any build recipe and it's only used to set
 # environment variables. Which file to actually include can be defined by the
