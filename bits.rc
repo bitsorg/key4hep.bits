@@ -3,7 +3,7 @@
 
 [KEY4HEP]
   pkg_prefix=VO_KEY4HEP
-  sw_dir=../sw
+  sw_dir=../sw-key4hep
   repo_dir=.
-  search_path=bits,general,simulation,hepmc,analysis,ml
+  search_path=common
   
