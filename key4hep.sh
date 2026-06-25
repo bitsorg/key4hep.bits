@@ -1,0 +1,73 @@
+package: key4hep
+description: Key4hep full software stack meta-package
+version: "1"
+license: Apache-2.0
+requires:
+  - lcg.bits
+  - CMake
+  - podio
+  - EDM4hep
+  - DD4hep
+  - Gaudi
+  - acts = 44.4.0
+  - k4actstracking = v00-02
+  - k4fwcore
+  - k4edm4hep2lcioconv
+  - k4marlinwrapper
+  - k4geo
+  - k4simgeant4
+  - k4reco
+  - k4gen
+  - k4reccalorimeter
+  - k4gaudipandora
+  - k4mljettagger
+  - LCIO
+  - marlin
+  - marlinutil
+  - marlintrk
+  - kaltest
+  - ddkaltest
+  - raida
+  - GSL
+  - aidatt
+  - kkmcee
+  - ipython
+  - mold
+  # iLCSoft / FCC / Marlin top-level packages
+  - cedviewer
+  - cldconfig
+  - clicperformance
+  - clupatra
+  - conddbmysql
+  - conformaltracking
+  - ddmarlinpandora
+  - ddml
+  - fcalclusterer
+  - fcc_config
+  - fccanalyses
+  - fccdetectors
+  - fccsw
+  - forwardtracking
+  - garlic
+  - genfit
+  - ildperformance
+  - k4_project_template
+  - k4clue
+  - k4generatorsconfig
+  - k4rectracker
+  - k4simdelphes
+  - lcfiplus
+  - lctuple
+  - marlindd4hep
+  - marlinfastjet
+  - marlinkinfitprocessors
+  - marlinmlflavortagging
+  - marlinreco
+  - marlintrkprocessors
+  - opendatadetector
+  - pandoraanalysis
+  - physsim
+build_requires:
+  - bits-recipe-tools
+  - "GCC-Toolchain:(?!osx)"
+---
