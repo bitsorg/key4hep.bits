@@ -10,7 +10,14 @@ env:
 system:
   sandbox_network: "off"
   build_oversubscribe: 1.25
-  
+  # CVMFS path templates (this group's structural choice; never hashed).
+  # Recorded in .meta.json; publish resolves {prefix} + {pkg}/{tag}/{platform}.
+  prefix:                     "/cvmfs/sft-nightlies-test.cern.ch/key4hep/releases"
+  cvmfs_user_prefix:          "/cvmfs/sft-nightlies-test.cern.ch/key4hep/user"  # sibling of releases, not {prefix}/user
+  cvmfs_path_template:        "{prefix}/{pkg}/{tag}/{platform}"
+  cvmfs_modules_template:     "{prefix}/{platform}/Modules/modulefiles/{pkg}"
+  cvmfs_shared_path_template: "{prefix}/noarch/{pkg}/{tag}"
+
 variables:
   lcgversion: main
 
@@ -19,5 +26,5 @@ requires:
 
 overrides:
   lcg.bits:
-    tag: %(lcgversion)s
+    tag: "%(lcgversion)s"
 ---
