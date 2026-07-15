@@ -1,7 +1,9 @@
 package: defaults-release
 version: v1
 env:
-  CXXFLAGS: "-fPIC -g -O2 -std=c++11"
+  # No CXXFLAGS/-std here: the C++ standard is owned by the compiler-axis defaults
+  # (stacks.bits/defaults-gccNN, defaults-clang), not this base profile. The old
+  # -std=c++11 pin was far too low for modern key4hep/ROOT.
   CFLAGS: "-fPIC -g -O2"
   CMAKE_BUILD_TYPE: "RELWITHDEBINFO"
   MACOSX_DEPLOYMENT_TARGET: '14.0'
