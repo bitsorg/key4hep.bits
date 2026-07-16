@@ -13,7 +13,7 @@ system:
   sandbox_network: "off"
   build_oversubscribe: 1.25
   # CVMFS path templates
-  prefix:                     "/cvmfs/sft-nightlies-test.cern.ch/key4hep/releases"
+  # CVMFS root prefix is authoritative in bits-console ui-config.yaml (auth boundary).
   cvmfs_user_prefix:          "/cvmfs/sft-nightlies-test.cern.ch/key4hep/user"  # sibling of releases, not {prefix}/user
   cvmfs_releases_template:        "{prefix}/{pkg}/{tag}/{platform}"
   cvmfs_modules_template:     "{prefix}/{platform}/Modules/modulefiles/{pkg}"
