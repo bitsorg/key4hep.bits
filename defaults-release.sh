@@ -24,12 +24,22 @@ system:
   cvmfs_shared_path_template: "{prefix}/noarch/{pkg}/{tag}"
 
 variables:
-  lcgversion: main
+  # THE release label - single source of truth for BOTH the lcg.bits recipe branch
+  # (the override below feeds it as %(release)s) and the CVMFS {release} path slot.
+  # `main` is the trunk sentinel: `bits` resolves the effective release as
+  #   explicit non-trunk release: (dev3/dev4/LCG_NNN) -> working-dir branch -> main
+  # so this default reproduces the old behaviour - build lcg.bits `main`, and,
+  # because a `main` release collapses the {release}/ segment out, publish with no
+  # release level in the path. Check out a recipe branch and the build tracks the
+  # matching lcg.bits branch and publishes under /releases/<branch>/…; set an
+  # explicit release: (dev3/dev4/a tag) to name a dedicated one. The value that is
+  # in effect must exist as an lcg.bits branch - that is the recipe pool.
+  release: main
 
 requires:
-  lcg.bits
+  - lcg.bits
 
 overrides:
   lcg.bits:
-    tag: "%(lcgversion)s"
+    tag: "%(release)s"
 ---
