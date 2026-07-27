@@ -17,8 +17,8 @@ system:
   # cvmfs_prefix) injects the authoritative value, which WINS; the value below MUST
   # match it (kept in sync by bits-admin PR) or an injected build refuses to publish.
   # It lets local `bits build` (no injection) work and is a checked declaration.
-  prefix:                     "/cvmfs/sft-nightlies-test.cern.ch/key4hep/releases"
-  cvmfs_user_prefix:          "/cvmfs/sft-nightlies-test.cern.ch/key4hep/user"  # sibling of releases, not {prefix}/user
+  prefix:                     "/cvmfs/bits.cern.ch/key4hep/releases"
+  cvmfs_user_prefix:          "/cvmfs/bits.cern.ch/key4hep/user"  # sibling of releases, not {prefix}/user
   cvmfs_releases_template:        "{prefix}/{pkg}/{tag}/{platform}"
   cvmfs_modules_template:     "{prefix}/{platform}/Modules/modulefiles/{pkg}"
   cvmfs_shared_path_template: "{prefix}/noarch/{pkg}/{tag}"
