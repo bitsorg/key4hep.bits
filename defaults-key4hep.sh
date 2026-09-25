@@ -1,8 +1,10 @@
 package: defaults-key4hep
 version: v1
 # key4hep group overlay — compose with:  --defaults key4hep[::gcc15::opt]
-# Inherits the shared build env + package_family + release/lcg.bits tag wiring from
-# stacks.bits (-> lcg.bits recipe pool); adds only the key4hep CVMFS namespace.
+# Inherits the shared build env + package_family from stacks.bits (-> lcg.bits
+# recipe pool); adds only the key4hep CVMFS namespace.
+# The release comes from the command line (--set release=LCG_110); `main` is
+# only the default.
 variables:
   release: "main"
 

@@ -48,14 +48,21 @@ key4hep.bits  ──requires──▶  stacks.bits  ──requires──▶  lcg
 
 ## The `defaults-key4hep.sh` Overlay
 
-Composed with `--defaults key4hep[::gcc15]`. Besides `system:` it carries only:
+Composed with `--defaults key4hep[::gcc15]`. Besides `system:` it carries only the base and the release tracking, identical in every stacks-based overlay:
 
 ```yaml
+variables:
+  release: "main"          # default only — pass --set release=LCG_110
 requires:
   - stacks.bits
+overrides:
+  lcg.bits:
+    tag: "%(release)s"     # recipe pool at the release branch
+  stacks.bits:
+    tag: "%(release)s"     # policy layer at the release branch
 ```
 
-Release tracking is inherited: `stacks.bits/defaults-release.sh` declares `release: main` and `overrides: lcg.bits: tag: "%(release)s"`, and `bits` re-resolves providers until they stop moving, so `lcg.bits` is fetched at the branch `release` names. (Do not repeat the override here without also declaring `release`: on the first discovery pass `stacks.bits` is not loaded yet and `%(release)s` is undefined.)
+`release` is declared here (not only in `stacks.bits`) because the overrides are expanded on the first discovery pass, before `stacks.bits` is loaded.
 
 It deliberately has **no `env:`, no `disable:` and no version overrides.** Those are hashed inputs: any of them would give every Key4hep package a hash different from the same package in the other stacks and turn store reuse into a full rebuild. Key4hep-specific version choices live as inline pins in `key4hep.sh` (see [The `key4hep` Meta-Package](#the-key4hep-meta-package)).
 
@@ -116,11 +123,9 @@ The C++ standard is owned by the compiler axis (gcc13/14 → c++20, gcc15 → c+
 
 The single `release` variable names **both** the `lcg.bits` branch to build against and the `{release}` segment of the CVMFS path, so a release's recipes and its install tree always match. `bits` resolves it, highest precedence first:
 
-1. an explicit non-trunk value (not `main`/`master`/`HEAD`): `--set release=LCG_110` on the command line, or `release:` in a profile such as `dev4`;
-2. else the **working-directory branch name** (`-patches` stripped, so `LCG_110-patches` → `LCG_110`);
-3. else **`main`** — build against `lcg.bits` `main`, with no `{release}` path segment.
+**Pass the release on the command line** (`--set release=LCG_110`); `main` is only the default. Every stacks-based group (atlas, lhcb, key4hep, ship) follows this rule, because a `--set` value is also exported into the build environment and enters every package hash: a release chosen any other way (a `release:` in a profile, or the checkout's branch name) hashes differently, and nothing the other groups built would be reused. Reuse also needs the same `lcg.bits` and `stacks.bits` commits and the same compiler/build-type profiles.
 
-The effective release **must exist as an `lcg.bits` branch** — that branch *is* the recipe pool. A Key4hep build reuses what another group already put in the store when both used the same `lcg.bits` commit, the same compiler/build-type profiles, and chose the release **the same way**: a `--set` value is also exported into the build environment and so enters every hash, so `--set release=LCG_110` and a `release:` declared in a profile give different hashes.
+(For reference, `bits` resolves it as: an explicit non-trunk value → the working-directory branch name, `-patches` stripped → `main`, where `main` drops the `{release}` path segment.) The effective release must exist as an `lcg.bits` and a `stacks.bits` branch.
 
 ---
 
@@ -250,7 +255,7 @@ The same saved pipeline can also run on a schedule (nightly) or on demand from t
 
 | File | Role |
 |---|---|
-| `defaults-key4hep.sh` | Key4hep group overlay (`--defaults key4hep`): requires `stacks.bits` (release tracking inherited from it), CVMFS namespace |
+| `defaults-key4hep.sh` | Key4hep group overlay (`--defaults key4hep`): `stacks.bits` base, release tracking, CVMFS namespace |
 | `key4hep.sh` | meta-package pulling in the complete Key4hep stack |
 
 The base profile (`defaults-release`) and the compiler/build-type/feature profiles (`gcc13/14/15`, `clang`, `dbg`, `cuda`, `dev3/dev4`) come from [`stacks.bits`](../stacks.bits), which `bits` pulls in automatically.
