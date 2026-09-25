@@ -20,7 +20,7 @@ overrides:
 system:
   prefix:                     "/cvmfs/bits.cern.ch/key4hep/releases"
   cvmfs_user_prefix:          "/cvmfs/bits.cern.ch/key4hep/user"
-  cvmfs_releases_template:    "{prefix}/{pkg}/{tag}/{platform}"
-  cvmfs_modules_template:     "{prefix}/{platform}/Modules/modulefiles/{pkg}"
-  cvmfs_shared_path_template: "{prefix}/noarch/{pkg}/{tag}"
+  cvmfs_releases_template:    "{prefix}/{release}/{pkg}/{tag}/{platform}"
+  cvmfs_modules_template:     "{prefix}/{release}/{platform}/Modules/modulefiles/{pkg}"
+  cvmfs_shared_path_template: "{prefix}/{release}/noarch/{pkg}/{tag}"
 ---
