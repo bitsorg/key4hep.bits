@@ -72,17 +72,20 @@ It deliberately has **no `env:`, no `disable:` and no version overrides.** Those
 
 | `system:` field | Value |
 |---|---|
-| `prefix` | `/cvmfs/bits.cern.ch/key4hep/releases` — the CVMFS root |
-| `cvmfs_user_prefix` | `/cvmfs/bits.cern.ch/key4hep/user` — per-user publishes go to `<user_prefix>/<login>`, a **sibling** of `releases` |
-| `cvmfs_releases_template` | `{prefix}/{release}/{pkg}/{tag}/{platform}` |
-| `cvmfs_modules_template` | `{prefix}/{release}/{platform}/Modules/modulefiles/{pkg}` |
-| `cvmfs_shared_path_template` | `{prefix}/{release}/noarch/{pkg}/{tag}` |
+| `prefix` | `/cvmfs/bits.cern.ch/key4hep` — the CVMFS root |
+| `cvmfs_user_prefix` | `{prefix}/user` — per-user publishes go to `<user_prefix>/<login>` |
+| `cvmfs_packages_template` | `{prefix}/{arch}/Packages/{pkg}/{tag}` — each package, published once (no family level: modulefiles find packages at `$BASEDIR/<pkg>/<ver-rev>`) |
+| `cvmfs_modules_template` | `{prefix}/{arch}/Modules/modulefiles/{pkg}` (plus `BASE/1.0`, which sets `BASEDIR`) |
+| `cvmfs_shared_path_template` | `{prefix}/noarch/{pkg}/{tag}` |
+| `cvmfs_releases_template` | `{prefix}/releases/{release}/{family}{pkg}/{version}/{arch}` — the release view |
 
-A package built for `LCG_110` therefore lands at `…/key4hep/releases/LCG_110/<pkg>/<tag>/<platform>`. On the `main` line the `{release}/` segment collapses away, so the path is `…/key4hep/releases/<pkg>/<tag>/<platform>`, as before.
+`{arch}` is the build arch (e.g. `x86_64-el9-gcc15-opt`), so compilers and build types never collide; `{tag}` is version-revision. A package already published by the same build is skipped. A release view — one relative symlink per package, pointing into the package tree — is added only when a release is created (`bits cvmfs publish --release-view`, or *Create release view* in bits-console), and only once every package of the build has been published.
+
+A package therefore lands at `…/key4hep/<arch>/Packages/<pkg>/<tag>` (the ALICE layout), and a release built for `LCG_110` adds `…/key4hep/releases/LCG_110/<pkg>/<version>/<arch>` → that package. The `main` line has no release, so no release view. To use the modules: `BITS_MODULEDIR=/cvmfs/bits.cern.ch/key4hep BITS_PLATFORM=x86_64-el9-gcc15-opt bitsenv enter <pkg>/<tag>`.
 
 > `prefix` is an **auth boundary**: bits-console injects the authoritative value from `communities/Key4hep/ui-config.yaml` (`cvmfs_prefix`), and the injected value wins. The value here must match it (kept in sync by a bits-admin PR) or an injected build refuses to publish.
 
-> To publish a Key4hep build into the testbed instead, append the testbed overlay last: `--defaults key4hep::gcc15::testbed` (with [`testbed.bits`](../testbed.bits) on `BITS_PATH`; the bits-console Testbed community loads it). It replaces only the root (`/cvmfs/test.cvmfs.io`) and the user prefix; the layout above is kept.
+> To publish a Key4hep build into the testbed instead, append the testbed overlay last: `--defaults key4hep::gcc15::testbed` (with [`testbed.bits`](../testbed.bits) on `BITS_PATH`; the bits-console Testbed community loads it). It swaps only the repository (`/cvmfs/bits.cern.ch` → `/cvmfs/test.cvmfs.io`); the layout above is kept.
 
 > `remote_store` / `certify_group` / `manifests_remote` are not set here — locally you pass the store on the command line (or `~/.bits/s3keys`), and in CI bits-console supplies them as job variables.
 
@@ -202,7 +205,7 @@ bits build key4hep --defaults key4hep::gcc15   # the complete Key4hep stack
 Three artefacts, deliberately separate:
 
 - **S3 content store** — a *content-addressed* cache of build tarballs (`TARS/<arch>/store/<hash>/…`, hash-only). Identical inputs → identical hash → identical binary, so any builder can **reuse** a prebuilt package instead of rebuilding. This is why the store exists: it makes builds fast and reproducible across machines and CI, and it's the substrate certification trusts. Configured via `system.remote_store` (`b3://<bucket>::rw`); credentials in `~/.bits/s3keys` (or `$BITS_AWS_KEYS_FILE`), store override `$BITS_S3_STORE`.
-- **CVMFS release tree** — the *path-addressed* deployment users actually mount (`…/key4hep/releases/[<release>/]<pkg>/<tag>/<platform>`).
+- **CVMFS tree** — the *path-addressed* deployment users actually mount: packages at `…/key4hep/<arch>/Packages/<pkg>/<tag>`, releases as views at `…/key4hep/releases/<release>/<pkg>/<version>/<arch>`.
 - **Signed common manifest** — the *trust unit*: what a client verifies before reusing a binary.
 
 Reuse happens automatically at build time: for each dependency `bits` resolves a hash and, if that object is already in the store (`from_remote_store`, with `--check-store`), downloads it rather than building. A finished build uploads its tarball for the next consumer. (`bits build --reuse-policy relaxed --reuse-base <build_id>` can graft a deployed release's binaries.)
