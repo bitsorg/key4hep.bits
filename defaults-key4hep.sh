@@ -21,7 +21,8 @@ overrides:
 # ALICE-style tree: packages published once under the build arch (platform-first
 # keeps each platform's catalogs apart), modulefiles beside them.
 # A release is a view of symlinks to the packages, created only
-# when asked for (bits cvmfs publish --release-view / console option).
+# when asked for (bits cvmfs publish --release-view / console option), together
+# with its merged view.
 system:
   prefix:                     "/cvmfs/bits.cern.ch/key4hep"
   cvmfs_user_prefix:          "{prefix}/user"
@@ -29,4 +30,6 @@ system:
   cvmfs_modules_template:     "{prefix}/{arch}/Modules/modulefiles/{pkg}"
   cvmfs_shared_path_template: "{prefix}/noarch/{pkg}/{tag}"
   cvmfs_releases_template:    "{prefix}/releases/{release}/{family}{pkg}/{version}/{arch}"
+  # The release's merged view (LCG-style bin/ lib/ include/ … + setup.sh), made with it.
+  cvmfs_views_template:       "{prefix}/views/{release}/{arch}"
 ---

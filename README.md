@@ -78,6 +78,7 @@ It deliberately has **no `env:`, no `disable:` and no version overrides.** Those
 | `cvmfs_modules_template` | `{prefix}/{arch}/Modules/modulefiles/{pkg}` (plus `BASE/1.0`, which sets `BASEDIR`) |
 | `cvmfs_shared_path_template` | `{prefix}/noarch/{pkg}/{tag}` |
 | `cvmfs_releases_template` | `{prefix}/releases/{release}/{family}{pkg}/{version}/{arch}` — the release view |
+| `cvmfs_views_template` | `{prefix}/views/{release}/{arch}` — the release's merged view: `bin/ lib/ include/ …` + `setup.sh`/`setup.csh`, like `/cvmfs/sft.cern.ch/lcg/views/LCG_110/<platform>` |
 
 `{arch}` is the build arch (e.g. `x86_64-el9-gcc15-opt`), so compilers and build types never collide; `{tag}` is version-revision. A package already published by the same build is skipped. A release view — one relative symlink per package, pointing into the package tree — is added only when a release is created (`bits cvmfs publish --release-view`, or *Create release view* in bits-console), and only once every package of the build has been published.
 
