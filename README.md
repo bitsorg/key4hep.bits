@@ -1,267 +1,100 @@
 # key4hep.bits
 
-Defaults and the stack meta-package for building **Key4hep** with [`bits`](../bits). This repository ships almost no package recipes of its own — the ~1100 recipes it builds against live in [`lcg.bits`](../lcg.bits). `key4hep.bits` is the *policy* layer for Key4hep: it declares the CVMFS publish layout for the `key4hep` area and the [`key4hep`](#the-key4hep-meta-package) meta-package that names the whole stack.
+Defaults and the stack meta-package for building the **Key4hep** software stack with
+[bits](https://github.com/bitsorg/bits). The repository contains no package recipes
+of its own. The packages (podio, EDM4hep, DD4hep, Gaudi, ACTS, the `k4*` framework,
+the iLCSoft/Marlin family and the FCC packages) all come from the
+[lcg.bits](https://github.com/bitsorg/lcg.bits) recipe pool. `key4hep.bits` adds two
+things: the `key4hep` meta-package, which names the whole stack, and the Key4hep CVMFS
+layout in `defaults-key4hep.sh`. That file requires
+[stacks.bits](https://github.com/bitsorg/stacks.bits), which provides the shared
+`release` base and the compiler and build-type profiles, and `stacks.bits` in turn
+requires `lcg.bits`. bits fetches both automatically through the
+[bits-providers](https://github.com/bitsorg/bits-providers) registry.
 
-It is a thin overlay on [`stacks.bits`](../stacks.bits), the shared base every community builds on: the build environment, the compiler/build-type profiles, the `release` variable and the `lcg.bits` recipe pool all come from there. Key4hep adds nothing hashed, so its packages hash like the same packages built by any other group on the same base (a group that sets its own `env:` or `package_family`, as LHCb currently does, is not on the same base) and are **reused from the store** instead of rebuilt.
+The overlay deliberately sets no `env:`, `disable:` or version overrides, because those
+are hashed. Key4hep packages therefore get the same hashes as the same packages built by
+other groups on the same base, and are reused from the binary store instead of rebuilt.
 
----
+## Prerequisites
 
-## Table of Contents
-- [Repository Discovery & Provider Model](#repository-discovery--provider-model)
-- [The `defaults-key4hep.sh` Overlay](#the-defaults-key4hepsh-overlay)
-  - [The `system:` Block](#the-system-block)
-- [Command-Line Usage](#command-line-usage)
-  - [Composing Profiles](#composing-profiles)
-  - [Previewing Publish Paths](#previewing-publish-paths)
-- [Branches and Releases](#branches-and-releases)
-- [The `key4hep` Meta-Package](#the-key4hep-meta-package)
-- [Local Development](#local-development)
-  - [Building Packages](#building-packages)
-  - [Using the Module Environment](#using-the-module-environment)
-  - [Building the Full Stack](#building-the-full-stack)
-  - [Iteration Workflow](#iteration-workflow)
-- [The S3 Content Store & Certification](#the-s3-content-store--certification)
-  - [Store Inspection & Management](#store-inspection--management)
-- [CI Pipelines](#ci-pipelines)
-- [Files Overview](#files-overview)
+- bits and its requirements (Python 3, git, Environment Modules), see the
+  [bits installation instructions](https://github.com/bitsorg/bits#installation).
+- A supported platform. The bits-console Key4hep community builds for x86_64 el8, el9
+  and el10, aarch64-el9, and x86_64 Ubuntu 22.04, 24.04 and 26.04.
 
----
+## Getting started
 
-## Repository Discovery & Provider Model
-
-`bits` resolves recipes along an ordered search path (`BITS_PATH`). Beyond local `*.bits` checkouts, a repository can be pulled in on demand by a *repository-provider* package — an ordinary recipe carrying `provides_repository: true` whose `source` points at a recipe repo. `bits` clones it into `sw/REPOS/<pkg>/<hash>/`, adds it to `BITS_PATH` and rescans, repeating for nested providers until the graph is stable. Each provider's commit is folded into every package hash, so bumping a pool triggers a rebuild.
-
-`key4hep.bits` requires **`stacks.bits`**, which requires **`lcg.bits`**:
-
-```
-key4hep.bits  ──requires──▶  stacks.bits  ──requires──▶  lcg.bits
-  defaults-key4hep.sh          defaults-release.sh          ≈1100 recipes: ROOT, Geant4,
-  key4hep.sh                   gcc13/14/15, clang, dbg,      podio, DD4hep, Gaudi, k4*, …
-                               cuda, dev3/dev4
+```bash
+bits init key4hep.bits && cd key4hep.bits     # or: git clone https://github.com/bitsorg/key4hep.bits
+bits use build --architecture x86_64-el9 --defaults key4hep::gcc15::opt --set release=LCG_110
+bits build --dry-run key4hep
+bits build key4hep                            # the complete stack
+bits enter key4hep/latest
 ```
 
-- `stacks.bits` supplies `defaults-release` (the base every chain starts from: the shared `env:`, `package_family`, sandbox/source policy, `release: main`) and the axis profiles.
-- `lcg.bits` supplies every recipe. The branch that is cloned is selected by `release` (see [Branches and Releases](#branches-and-releases)).
-- `key4hep.bits` adds only what is Key4hep's: the CVMFS namespace and the meta-package.
+The `bits use` profile stores the settings in this checkout, so every later
+`bits build` here gets them; options given on the command line still win. The build
+architecture is `x86_64-el9-gcc15-opt`. A single package builds the same way, e.g.
+`bits build DD4hep`. Check the machine with `bits doctor`. To build elsewhere,
+`export BITS_WORK_DIR=/path/to/sw`. See
+[Configuration](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md#4-configuration)
+in the bits user guide.
 
----
+## Notes for Key4hep users
 
-## The `defaults-key4hep.sh` Overlay
+- **Choosing defaults.** Name the group overlay (`key4hep`), then one compiler, one build
+  type and optionally `cuda`, as described in
+  [Composing profiles](https://github.com/bitsorg/stacks.bits#composing-profiles). Key4hep
+  uses `gcc15::opt`, so builds run in `x86_64-el9-gcc15-opt`.
+- **Always pass the release on the command line** (`--set release=LCG_110`, or record it
+  with `bits use` as above). `main` is only the default. The value selects the
+  `lcg.bits` and `stacks.bits` branches and the CVMFS `{release}` path segment, and it
+  enters every package hash. A release chosen any other way hashes differently, so
+  nothing built by the other groups is reused. The release must exist as a branch of
+  both `lcg.bits` and `stacks.bits`.
+- **The `key4hep` meta-package.** `key4hep.sh` builds nothing itself; it only requires
+  the stack. A few versions are pinned inline (`acts = 44.4.0`,
+  `k4actstracking = v00-02`). Everything else follows the `lcg.bits` branch selected by
+  `release`. An inline pin changes only that package and its dependents.
+- **CVMFS layout.** Builds publish under `/cvmfs/bits.cern.ch/key4hep` with the shared
+  [stacks.bits layout](https://github.com/bitsorg/stacks.bits#cvmfs-layout); only the
+  prefix differs. `prefix` must match `cvmfs_prefix` in the bits-console Key4hep community
+  configuration, or an injected build refuses to publish. To preview a path without
+  building, run
+  `bits cvmfs-path -c . --defaults key4hep::gcc15::opt --set release=LCG_110 --admin --package <pkg> --version <v> --platform <arch>`.
+- **Using the published modules.** Run
+  `BITS_MODULEDIR=/cvmfs/bits.cern.ch/key4hep BITS_PLATFORM=x86_64-el9-gcc15-opt bitsenv enter <pkg>/<tag>`.
+- **Publishing to the testbed.** Append the `testbed` overlay from
+  [testbed.bits](https://github.com/bitsorg/testbed.bits) as the last profile, for example
+  `--defaults key4hep::gcc15::opt::testbed`. It changes only the CVMFS repository and
+  keeps the layout.
+- **CI.** Nightly or on-commit builds are pipelines saved in bits-console
+  (`communities/Key4hep/pipelines/<PIPELINE>.json`). A small `.gitlab-ci.yml` in a recipe
+  repository can trigger one with `BITS_GROUP: Key4hep` and `BITS_PIPELINE: <name>`. The
+  store, certification group and manifests repository are supplied by bits-console in CI,
+  not set in this repository.
 
-Composed with `--defaults key4hep[::gcc15]`. Besides `system:` it carries only the base and the release tracking, identical in every stacks-based overlay:
+## Files
 
-```yaml
-variables:
-  release: "main"          # default only — pass --set release=LCG_110
-requires:
-  - stacks.bits
-overrides:
-  lcg.bits:
-    tag: "%(release)s"     # recipe pool at the release branch
-  stacks.bits:
-    tag: "%(release)s"     # policy layer at the release branch
-```
-
-`release` is declared here (not only in `stacks.bits`) because the overrides are expanded on the first discovery pass, before `stacks.bits` is loaded.
-
-It deliberately has **no `env:`, no `disable:` and no version overrides.** Those are hashed inputs: any of them would give every Key4hep package a hash different from the same package in the other stacks and turn store reuse into a full rebuild. Key4hep-specific version choices live as inline pins in `key4hep.sh` (see [The `key4hep` Meta-Package](#the-key4hep-meta-package)).
-
-### The `system:` Block
-
-`system:` holds *where* things publish. It is never folded into package hashes, so the same binary can be published to any group's tree without changing identity.
-
-| `system:` field | Value |
+| File | Purpose |
 |---|---|
-| `prefix` | `/cvmfs/bits.cern.ch/key4hep` — the CVMFS root |
-| `cvmfs_user_prefix` | `{prefix}/user` — per-user publishes go to `<user_prefix>/<login>` |
-| `cvmfs_packages_template` | `{prefix}/{arch}/Packages/{pkg}/{tag}` — each package, published once (no family level: modulefiles find packages at `$BASEDIR/<pkg>/<ver-rev>`) |
-| `cvmfs_modules_template` | `{prefix}/{arch}/Modules/modulefiles/{pkg}` (plus `BASE/1.0`, which sets `BASEDIR`) |
-| `cvmfs_shared_path_template` | `{prefix}/noarch/{pkg}/{tag}` |
-| `cvmfs_releases_template` | `{prefix}/releases/{release}/{family}{pkg}/{version}/{arch}` — the release view |
-| `cvmfs_views_template` | `{prefix}/views/{release}/{arch}` — the release's merged view: `bin/ lib/ include/ …` + `setup.sh`/`setup.csh`, like `/cvmfs/sft.cern.ch/lcg/views/LCG_110/<platform>` |
-
-`{arch}` is the build arch (e.g. `x86_64-el9-gcc15-opt`), so compilers and build types never collide; `{tag}` is version-revision. A package already published by the same build is skipped. A release view — one relative symlink per package, pointing into the package tree — is added only when a release is created (`bits cvmfs publish --release-view`, or *Create release view* in bits-console), and only once every package of the build has been published.
-
-A package therefore lands at `…/key4hep/<arch>/Packages/<pkg>/<tag>` (the ALICE layout), and a release built for `LCG_110` adds `…/key4hep/releases/LCG_110/<pkg>/<version>/<arch>` → that package. The `main` line has no release, so no release view. To use the modules: `BITS_MODULEDIR=/cvmfs/bits.cern.ch/key4hep BITS_PLATFORM=x86_64-el9-gcc15-opt bitsenv enter <pkg>/<tag>`.
-
-> `prefix` is an **auth boundary**: bits-console injects the authoritative value from `communities/Key4hep/ui-config.yaml` (`cvmfs_prefix`), and the injected value wins. The value here must match it (kept in sync by a bits-admin PR) or an injected build refuses to publish.
-
-> To publish a Key4hep build into the testbed instead, append the testbed overlay last: `--defaults key4hep::gcc15::testbed` (with [`testbed.bits`](../testbed.bits) on `BITS_PATH`; the bits-console Testbed community loads it). It swaps only the repository (`/cvmfs/bits.cern.ch` → `/cvmfs/test.cvmfs.io`); the layout above is kept.
-
-> `remote_store` / `certify_group` / `manifests_remote` are not set here — locally you pass the store on the command line (or `~/.bits/s3keys`), and in CI bits-console supplies them as job variables.
-
----
-
-## Command-Line Usage
-
-Profiles are composed with `::`. `release` (from `stacks.bits`) is always the implicit base, so you name the group overlay and the axes:
-
-```bash
-bits build DD4hep  --defaults key4hep::gcc15                        # main line
-bits build DD4hep  --defaults key4hep::gcc15::dbg                   # + Debug
-bits build key4hep --defaults key4hep::gcc15 --set release=LCG_110  # whole stack on LCG_110
-```
-
-### Composing Profiles
-
-Each axis contributes an `append_arch` suffix, so the arch string is the `bits` `BINARY_TAG`:
-
-| Axis | Profiles | Sets | `append_arch` | Lives in |
-|---|---|---|---|---|
-| Compiler | `gcc13`, `gcc14`, `gcc15`, `clang` | `GCC-Toolchain` tag (or `prefer_system` for clang) + the C++ standard | `-gcc13` … `-clang` | `stacks.bits` |
-| Build type | *(base)*, `dbg` | `CMAKE_BUILD_TYPE` = `RELWITHDEBINFO` / `Debug` | `-dbg` | `stacks.bits` |
-| Feature | `cuda` | CUDA knobs | `-cuda` | `stacks.bits` |
-| Release line | `dev3`, `dev4` | `release` + that line's version overrides | *(none)* | `stacks.bits` |
-| Group | `key4hep` | CVMFS namespace | *(none)* | **this repo** |
-| Publish target | `testbed` | CVMFS root only | *(none)* | `testbed.bits` |
-
-The C++ standard is owned by the compiler axis (gcc13/14 → c++20, gcc15 → c++23, clang → c++20).
-
-### Previewing Publish Paths
-
-`bits cvmfs-path -c . --defaults key4hep::gcc15 --admin --package <pkg> --version <v> --platform <p>` prints the exact publish path a build would use (without `--admin`, a user path; pass `--login`).
-
----
-
-## Branches and Releases
-
-The single `release` variable names **both** the `lcg.bits` branch to build against and the `{release}` segment of the CVMFS path, so a release's recipes and its install tree always match. `bits` resolves it, highest precedence first:
-
-**Pass the release on the command line** (`--set release=LCG_110`); `main` is only the default. Every stacks-based group (atlas, lhcb, key4hep, ship) follows this rule, because a `--set` value is also exported into the build environment and enters every package hash: a release chosen any other way (a `release:` in a profile, or the checkout's branch name) hashes differently, and nothing the other groups built would be reused. Reuse also needs the same `lcg.bits` and `stacks.bits` commits and the same compiler/build-type profiles.
-
-(For reference, `bits` resolves it as: an explicit non-trunk value → the working-directory branch name, `-patches` stripped → `main`, where `main` drops the `{release}` path segment.) The effective release must exist as an `lcg.bits` and a `stacks.bits` branch.
-
----
-
-## The `key4hep` Meta-Package
-
-`key4hep.sh` is a meta-package: it builds nothing itself and simply `requires` the full stack, so one command builds everything and the dependency graph does the ordering.
-
-It names the Key4hep core (`podio`, `EDM4hep`, `DD4hep`, `Gaudi`, `acts`, the `k4*` framework and reconstruction packages), the iLCSoft/Marlin family (`marlin*`, `LCIO`, `lcfiplus`, …), the FCC packages (`fcc*`), and the shared externals they need. Version pins live inline where a specific version is required, e.g.:
-
-```yaml
-requires:
-  - acts = 44.4.0
-  - k4actstracking = v00-02
-```
-
-Everything else floats with the recipe pool, so the `lcg.bits` branch selected by `release` decides the versions. An inline pin changes only that package and what depends on it; everything else stays reusable.
-
----
-
-## Local Development
-
-Building is done with `bits`; exploring and using the resulting module environment is done with **`bitsenv`**, the [Environment Modules] front-end. A build installs to `sw/<arch>/<pkg>/<ver>-<rev>/` and generates a modulefile named `<package>/<version>` that `bitsenv` can then load.
-
-### Building Packages
-
-**Build** a single package (work dir defaults to `sw`, arch auto-detected):
-
-```bash
-bits build DD4hep --defaults key4hep::gcc15
-bits build DD4hep --defaults key4hep::gcc15 -a ubuntu2510_x86-64-gcc15 -w /scratch/sw
-bits deps  key4hep --defaults key4hep::gcc15      # inspect the dependency tree first
-```
-
-### Using the Module Environment
-
-**Discover** the built modules:
-
-```bash
-bitsenv q                    # list every available module (alias: bitsenv query)
-bitsenv q k4                 # ...matching a regexp
-```
-
-**Test / use** a package in its module environment — three ways (`bitsenv [-p <platform>] [-m <modules dir>] <verb>`):
-
-```bash
-# a) interactive subshell with the module(s) loaded; `exit` to leave.
-bitsenv enter DD4hep/v01-33
-bitsenv enter DD4hep/v01-33,ROOT/v6.38.00      # several modules, comma-separated
-
-# b) run ONE command in the environment (exit code preserved):
-bitsenv setenv DD4hep/v01-33 -c ddsim --help   # everything after -c runs as-is
-
-# c) inject the environment into your CURRENT shell (note the backticks):
-eval `bitsenv printenv DD4hep/v01-33`
-bitsenv checkenv DD4hep/v01-33                 # sanity-check the module env
-```
-
-### Building the Full Stack
-
-**Build the full stack** via the meta-package in this repo — it pulls in the whole set as dependencies:
-
-```bash
-bits build key4hep --defaults key4hep::gcc15   # the complete Key4hep stack
-```
-
-### Iteration Workflow
-
-**Iterate**: edit a recipe in `lcg.bits` on a branch, re-run `bits build` (only what changed rebuilds — see [The S3 Content Store](#the-s3-content-store--certification) on reuse), and `bits clean` to reset the build area. Because the local install tree already carries the arch layout, what you test locally is exactly what gets published.
-
----
-
-## The S3 Content Store & Certification
-
-Three artefacts, deliberately separate:
-
-- **S3 content store** — a *content-addressed* cache of build tarballs (`TARS/<arch>/store/<hash>/…`, hash-only). Identical inputs → identical hash → identical binary, so any builder can **reuse** a prebuilt package instead of rebuilding. This is why the store exists: it makes builds fast and reproducible across machines and CI, and it's the substrate certification trusts. Configured via `system.remote_store` (`b3://<bucket>::rw`); credentials in `~/.bits/s3keys` (or `$BITS_AWS_KEYS_FILE`), store override `$BITS_S3_STORE`.
-- **CVMFS tree** — the *path-addressed* deployment users actually mount: packages at `…/key4hep/<arch>/Packages/<pkg>/<tag>`, releases as views at `…/key4hep/releases/<release>/<pkg>/<version>/<arch>`.
-- **Signed common manifest** — the *trust unit*: what a client verifies before reusing a binary.
-
-Reuse happens automatically at build time: for each dependency `bits` resolves a hash and, if that object is already in the store (`from_remote_store`, with `--check-store`), downloads it rather than building. A finished build uploads its tarball for the next consumer. (`bits build --reuse-policy relaxed --reuse-base <build_id>` can graft a deployed release's binaries.)
-
-```bash
-bits build <pkg> …            # checks the store, builds only what's missing, uploads results
-bits publish <pkg> …          # relocates the install to its CVMFS path and streams it
-                              #   to the ingestion spool → the release tree
-bits certify …                # merges published build manifests into ONE common manifest,
-                              #   validates every content hash against the S3 store, and
-                              #   signs it with the release Ed25519 key (clients trust this)
-```
-
-`certify` is what turns a pile of uploaded tarballs into something safe to reuse: it checks each hash really is in the store and signs the result. `certify_group`, `manifests_remote` (and the release key) configure it — supplied by bits-console in CI.
-
-### Store Inspection & Management
-
-**Inspect / verify / clean the store** with `bits store`:
-
-```bash
-bits store ls   --arch A --group G --package P --version V   # list (manifest-aware selection)
-bits store verify [--arch A] [--deep] [--orphans]            # integrity check vs manifests
-bits store rm   <selection> [-n]                             # delete (e.g. --orphans, --expired); -n dry-run
-bits gc                                                      # reachability GC: roots = hashes in the
-                                                             #   verified signed manifest; fail-closed
-```
-
-Normally you don't run publish/certify by hand — the bits-console cvmfs-prepub pipeline does it (see [CI Pipelines](#ci-pipelines)). Locally you mostly `build` + `enter`/`setenv` to test, and use `bits store` to inspect what reuse will pull.
-
----
-
-## CI Pipelines
-
-A commit to `lcg.bits` **or** `key4hep.bits` (including a GitLab pull-mirror sync) can fire a **designated pipeline** configured and saved in **bits-console**, giving nightly/CI-style rebuilds without redefining the build here.
-
-- The build definition (packages, platforms, defaults chain, providers, publish/certify) is authored in the console's **Build modal → "Save as pipeline"** and stored at `communities/Key4hep/pipelines/<PIPELINE>.json`.
-- A small `.gitlab-ci.yml` in the recipe repo only *fires* it, multi-project-triggering bits-console with `BITS_GROUP: Key4hep` and `BITS_PIPELINE: on-commit`; the downstream `run-group-pipeline` job fans out one cvmfs-prepub build (build → publish → certify) per enabled entry.
-
-One-time setup (GitLab UI):
-
-1. bits-console → Settings → CI/CD → **Token Access** → add the recipe project to the `CI_JOB_TOKEN` allowlist.
-2. If the recipe repo is a pull-mirror, enable **Mirroring → "Trigger pipelines for mirror updates"** (the `.gitlab-ci.yml` must be on the mirrored branch).
-3. In the console, build the stack in the Build modal, tick the options, and **Save as pipeline**, naming it to match `BITS_PIPELINE`.
-
-The same saved pipeline can also run on a schedule (nightly) or on demand from the console — the commit trigger is just one entry point.
-
----
-
-## Files Overview
-
-| File | Role |
-|---|---|
-| `defaults-key4hep.sh` | Key4hep group overlay (`--defaults key4hep`): `stacks.bits` base, release tracking, CVMFS namespace |
-| `key4hep.sh` | meta-package pulling in the complete Key4hep stack |
-
-The base profile (`defaults-release`) and the compiler/build-type/feature profiles (`gcc13/14/15`, `clang`, `dbg`, `cuda`, `dev3/dev4`) come from [`stacks.bits`](../stacks.bits), which `bits` pulls in automatically.
-
-[Environment Modules]: https://modules.readthedocs.io/
+| `defaults-key4hep.sh` | Key4hep overlay (`--defaults key4hep`): `stacks.bits` base, release tracking, CVMFS layout |
+| `key4hep.sh` | Meta-package that requires the complete Key4hep stack |
+
+## More information
+
+- [Developing a package](https://github.com/bitsorg/bits/blob/main/docs/COOKBOOK.md#develop-and-iterate-on-a-single-package)
+  with a local checkout (`bits init -c . <package>`);
+  [sharing binaries through a store](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md#sharing-binaries-through-a-store)
+- [stacks.bits](https://github.com/bitsorg/stacks.bits#readme) and
+  [lcg.bits](https://github.com/bitsorg/lcg.bits#readme) READMEs: profiles, releases,
+  CVMFS layout and the recipe pool; [bits-providers](https://github.com/bitsorg/bits-providers): the registry
+- bits [User Guide](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md),
+  [Cookbook](https://github.com/bitsorg/bits/blob/main/docs/COOKBOOK.md),
+  [Reference](https://github.com/bitsorg/bits/blob/main/docs/REFERENCE.md)
+- [bits-console](https://gitlab.cern.ch/buncic/bits-console): CI builds and CVMFS publishing
+
+## License
+
+This repository does not contain a LICENSE file yet.
