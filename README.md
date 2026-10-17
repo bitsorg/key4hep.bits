@@ -64,7 +64,8 @@ in the bits user guide.
   building, run
   `bits cvmfs-path -c . --defaults key4hep::gcc15::opt --set release=LCG_110 --admin --package <pkg> --version <v> --platform <arch>`.
 - **Using the published modules.** Run
-  `BITS_MODULEDIR=/cvmfs/bits.cern.ch/key4hep BITS_PLATFORM=x86_64-el9-gcc15-opt bitsenv enter <pkg>/<tag>`.
+  `/cvmfs/bits.cern.ch/bits/bin/bits --community key4hep -a x86_64-el9-gcc15-opt enter <pkg>/<tag>`
+  (in a grid job: `... setenv <pkg>/<tag> -c ./run.sh`; no work directory needed).
 - **Publishing to the testbed.** Append the `testbed` overlay from
   [testbed.bits](https://github.com/bitsorg/testbed.bits) as the last profile, for example
   `--defaults key4hep::gcc15::opt::testbed`. It changes only the CVMFS repository and
