@@ -18,26 +18,38 @@ other groups on the same base, and are reused from the binary store instead of r
 
 ## Prerequisites
 
-- bits and its requirements (Python 3, git, Environment Modules), see the
-  [bits installation instructions](https://github.com/bitsorg/bits#installation).
-- A supported platform. The bits-console Key4hep community builds for x86_64 el8, el9
-  and el10, aarch64-el9, and x86_64 Ubuntu 22.04, 24.04 and 26.04.
+- bits, and one of two setups (see [Installation &
+  Prerequisites](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md#2-installation--prerequisites)
+  in the bits user guide; `bits doctor` checks the machine):
+  - docker or rootless podman, to build in the platform's builder image with `--docker`
+    (recommended, and the only way to reuse what the Key4hep CI built);
+  - or the system packages listed in [Building
+    natively](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md#building-natively-what-to-install),
+    to build with this machine's compilers and libraries.
+- A platform the Key4hep CI builds, so that its binaries are reused: `x86_64-el8`,
+  `x86_64-el9`, `x86_64-el10`, `aarch64-el9`, `x86_64-ubuntu2204`, `x86_64-ubuntu2404` and
+  `x86_64-ubuntu2604`. Pass it as `--architecture`: by itself bits names a machine after
+  its OS (an EL9 machine `slc9_x86-64`), which is not one of them. See [Finding a platform
+  with pre-built
+  binaries](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md#finding-a-platform-with-pre-built-binaries).
 
 ## Getting started
 
 ```bash
 bits init key4hep.bits && cd key4hep.bits     # or: git clone https://github.com/bitsorg/key4hep.bits
-bits use build --architecture x86_64-el9 --defaults key4hep::gcc15::opt --set release=LCG_110
+bits use build --docker --architecture x86_64-el9 --defaults key4hep::gcc15::opt --set release=LCG_110
 bits build --dry-run key4hep
 bits build key4hep                            # the complete stack
 bits enter key4hep/latest
 ```
 
-The `bits use` profile stores the settings in this checkout, so every later
-`bits build` here gets them; options given on the command line still win. The build
-architecture is `x86_64-el9-gcc15-opt`. A single package builds the same way, e.g.
-`bits build DD4hep`. Check the machine with `bits doctor`. To build elsewhere,
-`export BITS_WORK_DIR=/path/to/sw`. See
+The `bits use` profile stores the settings in this checkout, so every later `bits build`
+here gets them; options given on the command line still win. The build architecture is
+`x86_64-el9-gcc15-opt`. `--docker` builds in the platform's builder image; on a machine of
+the same platform `bits enter` then works here. Without it, bits builds with this
+machine's compilers and system packages, and reuses nothing the CI built. A single package
+builds the same way, e.g. `bits build DD4hep`. Check the machine with `bits doctor`. To
+build elsewhere, `export BITS_WORK_DIR=/path/to/sw`. See
 [Configuration](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md#4-configuration)
 in the bits user guide.
 
@@ -70,11 +82,11 @@ in the bits user guide.
   [testbed.bits](https://github.com/bitsorg/testbed.bits) as the last profile, for example
   `--defaults key4hep::gcc15::opt::testbed`. It changes only the CVMFS repository and
   keeps the layout.
-- **CI.** Nightly or on-commit builds are pipelines saved in bits-console
-  (`communities/Key4hep/pipelines/<PIPELINE>.json`). A small `.gitlab-ci.yml` in a recipe
-  repository can trigger one with `BITS_GROUP: Key4hep` and `BITS_PIPELINE: <name>`. The
-  store, certification group and manifests repository are supplied by bits-console in CI,
-  not set in this repository.
+- **CI.** Nightly builds and builds on each push to a branch are set up in bits-console,
+  on the Key4hep community's Schedules page; see
+  steps 4 and 5 of [Phase 4 of the bits workflow guide](https://github.com/bitsorg/bits/blob/main/docs/WORKFLOWS.md#phase-4--ci-build-and-cvmfs-publication-via-bits-console).
+  The store, certification group and manifests repository are supplied by bits-console in
+  CI, not set in this repository.
 
 ## Files
 
