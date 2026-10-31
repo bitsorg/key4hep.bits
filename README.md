@@ -37,19 +37,21 @@ other groups on the same base, and are reused from the binary store instead of r
 
 ```bash
 bits init key4hep.bits && cd key4hep.bits     # or: git clone https://github.com/bitsorg/key4hep.bits
-bits use build --docker --architecture x86_64-el9 --defaults key4hep::gcc15::opt --set release=LCG_110
+bits use --architecture x86_64-el9 --defaults key4hep::gcc15::opt
+bits use build --docker --set release=LCG_110
 bits build --dry-run key4hep
 bits build key4hep                            # the complete stack
 bits enter key4hep/latest
 ```
 
-The `bits use` profile stores the settings in this checkout, so every later `bits build`
-here gets them; options given on the command line still win. The build architecture is
-`x86_64-el9-gcc15-opt`. `--docker` builds in the platform's builder image; on a machine of
-the same platform `bits enter` then works here. Without it, bits builds with this
-machine's compilers and system packages, and reuses nothing the CI built. A single package
-builds the same way, e.g. `bits build DD4hep`. Check the machine with `bits doctor`. To
-build elsewhere, `export BITS_WORK_DIR=/path/to/sw`. See
+The `bits use` profile stores the settings in this checkout: the platform and the defaults
+for every command, so `bits q` and `bits enter` find this build among others in the work
+directory, the rest for `bits build`; options given on the command line still win. The
+build architecture is `x86_64-el9-gcc15-opt`. `--docker` builds in the platform's builder
+image; on a machine of the same platform `bits enter` then works here. Without it, bits
+builds with this machine's compilers and system packages, and reuses nothing the CI built.
+A single package builds the same way, e.g. `bits build DD4hep`. Check the machine with
+`bits doctor`. To build elsewhere, `export BITS_WORK_DIR=/path/to/sw`. See
 [Configuration](https://github.com/bitsorg/bits/blob/main/docs/USERGUIDE.md#4-configuration)
 in the bits user guide.
 
