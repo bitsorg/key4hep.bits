@@ -1,0 +1,20 @@
+# CVMFS layout of this recipe repository: the keys of a defaults profile's
+# system: section, read with the first profile taken from this repository
+# (a later profile, e.g. a nightly one, can still change a key). See bits'
+# docs/REFERENCE.md, "The CVMFS layout file: cvmfs.yaml".
+#
+# key4hep CVMFS namespace + layout: 
+# Policy knobs (sandbox_network/build_oversubscribe/source_mode) inherit from stacks.
+# ALICE-style tree: packages published once under the build arch (platform-first
+# keeps each platform's catalogs apart), modulefiles beside them.
+# A release is a view of symlinks to the packages, created only
+# when asked for (bits cvmfs publish --release-view / console option), together
+# with its merged view.
+prefix:                     "/cvmfs/bits.cern.ch/key4hep"
+cvmfs_user_prefix:          "{prefix}/user"
+cvmfs_packages_template:    "{prefix}/{arch}/Packages/{pkg}/{tag}"
+cvmfs_modules_template:     "{prefix}/{arch}/Modules/modulefiles/{pkg}"
+cvmfs_shared_path_template: "{prefix}/noarch/{pkg}/{tag}"
+cvmfs_releases_template:    "{prefix}/releases/{release}/{family}{pkg}/{version}/{arch}"
+# The release's merged view (LCG-style bin/ lib/ include/ … + setup.sh), made with it.
+cvmfs_views_template:       "{prefix}/views/{release}/{arch}"
