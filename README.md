@@ -95,7 +95,7 @@ in the bits user guide.
 | File | Purpose |
 |---|---|
 | `defaults-key4hep.sh` | Key4hep overlay (`--defaults key4hep`): `stacks.bits` base, release tracking, CVMFS layout |
-| `key4hep.sh` | Meta-package that requires the complete Key4hep stack |
+| `packages/key4hep.sh` | Meta-package that requires the complete Key4hep stack |
 
 ## More information
 
